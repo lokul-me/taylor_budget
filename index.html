@@ -267,7 +267,7 @@
 
 <div id="needSheet" class="sheet">
   <div class="grab"></div>
-  <h3>Add a need</h3>
+  <h3 id="needTitle">Add a need</h3>
   <div class="field">
     <label>What do you need?</label>
     <input id="needName" placeholder="New tires, vet visit…" autocapitalize="words">
@@ -278,7 +278,7 @@
   </div>
   <div class="sheet-actions">
     <button class="btn-cancel" onclick="closeSheets()">Cancel</button>
-    <button class="btn-save" onclick="saveNeed()">Add to list</button>
+    <button id="needSaveBtn" class="btn-save" onclick="saveNeed()">Add to list</button>
   </div>
 </div>
 
@@ -444,11 +444,11 @@ function renderNeeds(){
   }
   nl.innerHTML=items.map(n=>`<div class="need">
     <button class="need-check" onclick="buyNeed('${n.id}')" title="Mark as bought">✓</button>
-    <div class="need-main">
+    <div class="need-main" onclick="editNeed('${n.id}')" style="cursor:pointer">
       <div class="need-name">${esc(n.name)}</div>
-      <div class="need-meta">tap ✓ when bought → moves to spending</div>
+      <div class="need-meta">tap to edit · ✓ when bought</div>
     </div>
-    <div class="need-amt">${fmt2(n.amt)}</div>
+    <div class="need-amt" onclick="editNeed('${n.id}')" style="cursor:pointer">${fmt2(n.amt)}</div>
     <button class="del" onclick="delNeed('${n.id}')">×</button>
   </div>`).join('');
 }
@@ -517,15 +517,35 @@ window.saveReturn=function(){
 };
 
 // needs handlers
+let editingNeedId=null;
 window.openNeed=function(){
+  editingNeedId=null;
+  $('needTitle').textContent='Add a need';
+  $('needSaveBtn').textContent='Add to list';
   $('needName').value=''; $('needAmt').value='';
+  openSheet('needSheet');
+};
+window.editNeed=function(id){
+  const n=(current.needs||{})[id];
+  if(!n) return;
+  editingNeedId=id;
+  $('needTitle').textContent='Edit need';
+  $('needSaveBtn').textContent='Save changes';
+  $('needName').value=n.name||'';
+  $('needAmt').value=(n.amt!=null?n.amt:'');
   openSheet('needSheet');
 };
 window.saveNeed=function(){
   const name=$('needName').value.trim();
   const amt=parseFloat($('needAmt').value);
   if(!name||isNaN(amt)||amt<0){ return; }
-  push(ref(db,'rooms/'+room+'/needs'),{name,amt:Math.round(amt*100)/100,ts:Date.now()});
+  const rounded=Math.round(amt*100)/100;
+  if(editingNeedId){
+    update(ref(db,'rooms/'+room+'/needs/'+editingNeedId),{name,amt:rounded});
+    editingNeedId=null;
+  } else {
+    push(ref(db,'rooms/'+room+'/needs'),{name,amt:rounded,ts:Date.now()});
+  }
   closeSheets();
 };
 window.delNeed=function(id){
