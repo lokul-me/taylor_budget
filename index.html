@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#10261f">
 <title>Our Budget</title>
 <style>
@@ -191,9 +192,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// ====================================================================
-//  PASTE YOUR FIREBASE CONFIG HERE  (instructions are in the chat)
-// ====================================================================
+/* ---- PASTE YOUR FIREBASE CONFIG VALUES BELOW ---- */
+/* Replace each PASTE_... with the value from your Firebase console. */
 const firebaseConfig = {
   apiKey: "AIzaSyAOLXR1fmbrApEFUlO_LwgyoCq2hBqmfaw",
   authDomain: "taylor-family-project.firebaseapp.com",
@@ -203,7 +203,7 @@ const firebaseConfig = {
   messagingSenderId: "762347386433",
   appId: "1:762347386433:web:ec49f594bccff62aa8b8c0"
 };
-===================================================================
+/* ---- end of config ---- */
 
 let db, room, me, period='week', current={limits:{},expenses:{}}, whoPick;
 
