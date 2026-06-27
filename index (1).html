@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#10261f">
+<title>Our Budget</title>
+<style>
+  :root{
+    --ink:#10261f;        /* deep evergreen */
+    --paper:#f6f4ec;      /* warm paper */
+    --card:#ffffff;
+    --line:#dcd8c9;
+    --green:#1f7a55;      /* under budget */
+    --gold:#c08a2d;       /* warning */
+    --red:#b23b3b;        /* over budget */
+    --muted:#7d8a82;
+    --jared:#2e6f9e;      /* one spender */
+    --wife:#9e2e6f;       /* the other */
+    --shadow:0 1px 3px rgba(16,38,31,.08),0 6px 20px rgba(16,38,31,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{max-width:520px;margin:0 auto;padding:0 0 110px;min-height:100vh}
+
+  /* ---------- Gate / setup ---------- */
+  .gate{padding:48px 24px;text-align:center}
+  .gate h1{font-size:26px;letter-spacing:-.5px;margin-bottom:8px}
+  .gate p{color:var(--muted);font-size:15px;line-height:1.5;margin-bottom:28px}
+  .gate input{width:100%;padding:16px;font-size:18px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);text-align:center;letter-spacing:1px;margin-bottom:14px}
+  .gate input:focus{outline:none;border-color:var(--ink)}
+
+  /* ---------- Header / dial ---------- */
+  header{padding:26px 22px 8px}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-weight:600}
+  .period-toggle{display:flex;gap:6px;background:#e9e6da;border-radius:12px;padding:4px;margin:14px 0 4px}
+  .period-toggle button{flex:1;border:none;background:none;padding:9px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);font-family:inherit}
+  .period-toggle button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+  .dial-wrap{display:flex;align-items:center;justify-content:center;padding:18px 0 6px;position:relative}
+  .dial{position:relative;width:230px;height:230px}
+  .dial svg{transform:rotate(-90deg)}
+  .dial-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .remaining-label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .remaining-amt{font-size:40px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin-top:2px}
+  .remaining-sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .spent-pill{margin-top:8px;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:#eef0ea;color:var(--ink)}
+
+  .limit-row{display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 22px 0;font-size:14px;color:var(--muted)}
+  .limit-row b{color:var(--ink)}
+  .edit-limit{background:none;border:1px solid var(--line);color:var(--ink);font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;font-family:inherit}
+
+  /* ---------- List ---------- */
+  .list-head{display:flex;align-items:baseline;justify-content:space-between;padding:22px 22px 6px}
+  .list-head h2{font-size:15px;letter-spacing:-.2px}
+  .list-head span{font-size:13px;color:var(--muted)}
+  .entry{display:flex;align-items:center;gap:14px;background:var(--card);margin:0 14px 8px;padding:14px 16px;border-radius:14px;box-shadow:var(--shadow)}
+  .avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+  .entry-main{flex:1;min-width:0}
+  .entry-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .entry-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .entry-amt{font-weight:700;font-size:16px;flex-shrink:0}
+  .entry .del{background:none;border:none;color:var(--muted);font-size:20px;padding:4px 2px 4px 8px;line-height:1}
+  .empty{text-align:center;color:var(--muted);padding:40px 24px;font-size:15px;line-height:1.5}
+
+  /* ---------- Add button + sheet ---------- */
+  .fab{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;padding:16px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper) 70%,transparent)}
+  .fab button{width:100%;padding:17px;font-size:17px;font-weight:700;color:#fff;background:var(--ink);border:none;border-radius:16px;font-family:inherit;box-shadow:0 6px 18px rgba(16,38,31,.25)}
+
+  .sheet-back{position:fixed;inset:0;background:rgba(16,38,31,.45);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+  .sheet-back.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:var(--paper);border-radius:24px 24px 0 0;padding:8px 20px calc(24px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .28s cubic-bezier(.32,.72,0,1);z-index:50}
+  .sheet.open{transform:translateY(0)}
+  .grab{width:40px;height:5px;background:var(--line);border-radius:3px;margin:8px auto 18px}
+  .sheet h3{font-size:19px;margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;padding:15px;font-size:17px;border:1.5px solid var(--line);border-radius:13px;background:var(--card);font-family:inherit}
+  .field input:focus{outline:none;border-color:var(--ink)}
+  .who{display:flex;gap:10px}
+  .who button{flex:1;padding:13px;border:1.5px solid var(--line);background:var(--card);border-radius:13px;font-size:15px;font-weight:600;font-family:inherit;color:var(--muted)}
+  .who button.on{border-color:var(--ink);color:#fff}
+  .sheet-actions{display:flex;gap:10px;margin-top:6px}
+  .sheet-actions button{flex:1;padding:16px;font-size:16px;font-weight:700;border-radius:14px;border:none;font-family:inherit}
+  .btn-cancel{background:#e9e6da;color:var(--ink)}
+  .btn-save{background:var(--ink);color:#fff}
+
+  /* main view switcher (Spending / Needs) */
+  .view-tabs{display:flex;gap:24px;padding:18px 22px 0;border-bottom:1px solid var(--line)}
+  .view-tabs button{background:none;border:none;padding:0 0 12px;font-size:16px;font-weight:700;color:var(--muted);font-family:inherit;position:relative;letter-spacing:-.2px}
+  .view-tabs button.on{color:var(--ink)}
+  .view-tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2.5px;background:var(--ink);border-radius:2px}
+  .view-tabs .badge{display:inline-block;min-width:18px;padding:1px 5px;margin-left:6px;font-size:11px;font-weight:700;background:#e9e6da;color:var(--ink);border-radius:10px;vertical-align:middle}
+
+  /* returns show green */
+  .entry-amt.credit{color:var(--green)}
+
+  /* needs list */
+  .needs-summary{margin:18px 14px 4px;background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);text-align:center}
+  .needs-summary .lbl{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .needs-summary .amt{font-size:32px;font-weight:700;letter-spacing:-1px;margin-top:4px}
+  .needs-summary .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .need{display:flex;align-items:center;gap:12px;background:var(--card);margin:0 14px 8px;padding:14px 16px;border-radius:14px;box-shadow:var(--shadow)}
+  .need-check{width:30px;height:30px;border-radius:9px;border:1.5px solid var(--ink);background:none;color:var(--ink);font-size:13px;font-weight:700;flex-shrink:0;font-family:inherit;line-height:1}
+  .need-main{flex:1;min-width:0}
+  .need-name{font-weight:600;font-size:15px}
+  .need-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .need-amt{font-weight:700;font-size:16px;flex-shrink:0;color:var(--muted)}
+  .need .del{background:none;border:none;color:var(--muted);font-size:20px;padding:4px 2px 4px 6px;line-height:1}
+
+  .status{text-align:center;font-size:12px;color:var(--muted);padding:6px}
+  .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- SETUP GATE -->
+<div id="gate" class="gate">
+  <h1>Our Budget</h1>
+  <p>Enter the same shared code on both phones to sync. Pick anything you'll both remember.</p>
+  <input id="roomInput" placeholder="e.g. smith-house" autocapitalize="off" autocomplete="off">
+  <input id="nameInput" placeholder="Your name (Jared or…)" autocapitalize="words">
+  <button class="edit-limit" style="padding:14px 28px;font-size:15px" onclick="joinRoom()">Start tracking</button>
+  <p id="gateErr" style="color:var(--red);margin-top:16px;display:none"></p>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header>
+    <div class="eyebrow" id="whoami">—</div>
+  </header>
+
+  <div class="view-tabs">
+    <button id="vSpend" class="on" onclick="setView('spend')">Spending</button>
+    <button id="vNeeds" onclick="setView('needs')">Needs<span class="badge" id="needsBadge">0</span></button>
+  </div>
+
+  <!-- SPENDING VIEW -->
+  <div id="spendView">
+    <header style="padding-top:18px">
+      <div class="period-toggle">
+        <button id="tabWeek" class="on" onclick="setPeriod('week')">This Week</button>
+        <button id="tabMonth" onclick="setPeriod('month')">This Month</button>
+      </div>
+    </header>
+
+    <div class="dial-wrap">
+      <div class="dial">
+        <svg width="230" height="230" viewBox="0 0 230 230">
+          <circle cx="115" cy="115" r="100" fill="none" stroke="#e6e3d6" stroke-width="18"/>
+          <circle id="ring" cx="115" cy="115" r="100" fill="none" stroke="var(--green)" stroke-width="18" stroke-linecap="round" stroke-dasharray="628" stroke-dashoffset="628"/>
+        </svg>
+        <div class="dial-center">
+          <div class="remaining-label">Left to spend</div>
+          <div class="remaining-amt" id="remaining">$0</div>
+          <div class="spent-pill" id="spentPill">$0 spent</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="limit-row">
+      <span id="periodWord">Weekly</span> limit: <b id="limitText">$0</b>
+      <button class="edit-limit" onclick="openLimit()">Edit</button>
+    </div>
+
+    <div class="list-head">
+      <h2 id="listTitle">Recent</h2>
+      <span id="listCount"></span>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <!-- NEEDS VIEW -->
+  <div id="needsView" class="hidden">
+    <div class="needs-summary">
+      <div class="lbl">Total to plan for</div>
+      <div class="amt" id="needsTotal">$0</div>
+      <div class="sub" id="needsSub">Nothing on the list yet</div>
+    </div>
+    <div class="list-head">
+      <h2>Upcoming needs</h2>
+      <span id="needsCount"></span>
+    </div>
+    <div id="needsList"></div>
+  </div>
+
+  <div class="status"><span class="sync-dot"></span><span id="syncText">Synced</span> · Room: <b id="roomName"></b></div>
+</div>
+
+<!-- ADD BUTTONS -->
+<div id="fab" class="fab hidden">
+  <div id="spendActions" style="display:flex;gap:10px">
+    <button onclick="openAdd()" style="flex:2">+ Add expense</button>
+    <button onclick="openReturn()" style="flex:1;background:var(--green)">Return</button>
+  </div>
+  <button id="needsAction" class="hidden" onclick="openNeed()">+ Add a need</button>
+</div>
+
+<!-- SHEETS -->
+<div id="sheetBack" class="sheet-back" onclick="closeSheets()"></div>
+
+<div id="addSheet" class="sheet">
+  <div class="grab"></div>
+  <h3>Add expense</h3>
+  <div class="field">
+    <label>What was it?</label>
+    <input id="expName" placeholder="Groceries, gas, dinner…" autocapitalize="words">
+  </div>
+  <div class="field">
+    <label>Amount</label>
+    <input id="expAmt" type="number" inputmode="decimal" placeholder="0.00">
+  </div>
+  <div class="field">
+    <label>Date</label>
+    <input id="expDate" type="date">
+  </div>
+  <div class="field">
+    <label>Who spent it?</label>
+    <div class="who" id="whoButtons"></div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn-cancel" onclick="closeSheets()">Cancel</button>
+    <button class="btn-save" onclick="saveExpense()">Save</button>
+  </div>
+</div>
+
+<div id="limitSheet" class="sheet">
+  <div class="grab"></div>
+  <h3 id="limitTitle">Set weekly limit</h3>
+  <div class="field">
+    <label>Whole dollar amount</label>
+    <input id="limitInput" type="number" inputmode="numeric" placeholder="500">
+  </div>
+  <div class="sheet-actions">
+    <button class="btn-cancel" onclick="closeSheets()">Cancel</button>
+    <button class="btn-save" onclick="saveLimit()">Save limit</button>
+  </div>
+</div>
+
+<div id="returnSheet" class="sheet">
+  <div class="grab"></div>
+  <h3>Log a return</h3>
+  <div class="field">
+    <label>What was returned?</label>
+    <input id="retName" placeholder="Returned shoes, refund…" autocapitalize="words">
+  </div>
+  <div class="field">
+    <label>Amount back</label>
+    <input id="retAmt" type="number" inputmode="decimal" placeholder="0.00">
+  </div>
+  <div class="field">
+    <label>Date</label>
+    <input id="retDate" type="date">
+  </div>
+  <div class="field">
+    <label>Who returned it?</label>
+    <div class="who" id="retWhoButtons"></div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn-cancel" onclick="closeSheets()">Cancel</button>
+    <button class="btn-save" style="background:var(--green)" onclick="saveReturn()">Add money back</button>
+  </div>
+</div>
+
+<div id="needSheet" class="sheet">
+  <div class="grab"></div>
+  <h3>Add a need</h3>
+  <div class="field">
+    <label>What do you need?</label>
+    <input id="needName" placeholder="New tires, vet visit…" autocapitalize="words">
+  </div>
+  <div class="field">
+    <label>Estimated cost</label>
+    <input id="needAmt" type="number" inputmode="decimal" placeholder="0.00">
+  </div>
+  <div class="sheet-actions">
+    <button class="btn-cancel" onclick="closeSheets()">Cancel</button>
+    <button class="btn-save" onclick="saveNeed()">Add to list</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* ---- PASTE YOUR FIREBASE CONFIG VALUES BELOW ---- */
+/* Replace each PASTE_... with the value from your Firebase console. */
+const firebaseConfig = {
+  apiKey: "AIzaSyAOLXR1fmbrApEFUlO_LwgyoCq2hBqmfaw",
+  authDomain: "taylor-family-project.firebaseapp.com",
+  databaseURL: "https://taylor-family-project-default-rtdb.firebaseio.com",
+  projectId: "taylor-family-project",
+  storageBucket: "taylor-family-project.firebasestorage.app",
+  messagingSenderId: "762347386433",
+  appId: "1:762347386433:web:ec49f594bccff62aa8b8c0"
+};
+/* ---- end of config ---- */
+
+let db, room, me, period='week', current={limits:{},expenses:{}}, whoPick;
+
+// boot
+try {
+  const fbApp = initializeApp(firebaseConfig);
+  db = getDatabase(fbApp);
+} catch(e){ /* shown on join */ }
+
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+const fmt2=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// restore last room/name
+const saved=JSON.parse(localStorage.getItem('ob_session')||'null');
+if(saved){ $('roomInput').value=saved.room; $('nameInput').value=saved.me; }
+
+window.joinRoom=function(){
+  const r=$('roomInput').value.trim().toLowerCase().replace(/[^a-z0-9\-]/g,'');
+  const n=$('nameInput').value.trim();
+  if(!r||!n){ showErr('Enter both a shared code and your name.'); return; }
+  if(firebaseConfig.apiKey==='PASTE_API_KEY'){ showErr('Firebase config not added yet. Paste your config into the file first (see chat instructions).'); return; }
+  room=r; me=n;
+  localStorage.setItem('ob_session',JSON.stringify({room:r,me:n}));
+  $('gate').classList.add('hidden'); $('app').classList.remove('hidden'); $('fab').classList.remove('hidden');
+  $('whoami').textContent='Hi, '+me; $('roomName').textContent=room;
+  listen();
+};
+function showErr(m){ const e=$('gateErr'); e.textContent=m; e.style.display='block'; }
+
+function listen(){
+  onValue(ref(db,'rooms/'+room),snap=>{
+    current=snap.val()||{limits:{},expenses:{}};
+    if(!current.limits) current.limits={};
+    if(!current.expenses) current.expenses={};
+    if(!current.needs) current.needs={};
+    render();
+  },err=>{ $('syncText').textContent='Connection issue — check rules'; });
+}
+
+let view='spend';
+window.setView=function(v){
+  view=v;
+  $('vSpend').classList.toggle('on',v==='spend');
+  $('vNeeds').classList.toggle('on',v==='needs');
+  $('spendView').classList.toggle('hidden',v!=='spend');
+  $('needsView').classList.toggle('hidden',v==='spend');
+  $('spendActions').style.display = v==='spend'?'flex':'none';
+  $('needsAction').classList.toggle('hidden',v==='spend');
+  render();
+};
+
+// period helpers
+function periodKey(){
+  const d=new Date();
+  if(period==='month') return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  // ISO week
+  const t=new Date(d); t.setHours(0,0,0,0); t.setDate(t.getDate()+3-((t.getDay()+6)%7));
+  const wk1=new Date(t.getFullYear(),0,4);
+  const wk=1+Math.round(((t-wk1)/86400000-3+((wk1.getDay()+6)%7))/7);
+  return t.getFullYear()+'-W'+String(wk).padStart(2,'0');
+}
+function inPeriod(dateStr){
+  const d=new Date(dateStr+'T00:00:00'); const now=new Date();
+  if(period==='month') return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+  const wkOf=x=>{const t=new Date(x);t.setHours(0,0,0,0);t.setDate(t.getDate()-((t.getDay()+6)%7));return t.getTime();};
+  return wkOf(d)===wkOf(now);
+}
+
+window.setPeriod=function(p){
+  period=p;
+  $('tabWeek').classList.toggle('on',p==='week');
+  $('tabMonth').classList.toggle('on',p==='month');
+  $('periodWord').textContent=p==='week'?'Weekly':'Monthly';
+  $('listTitle').textContent=p==='week'?'This week':'This month';
+  render();
+};
+
+function render(){
+  const limit=Number(current.limits[periodKey()]||0);
+  const all=current.expenses||{};
+  const entries=Object.entries(all).map(([id,e])=>({id,...e}))
+    .filter(e=>inPeriod(e.date)).sort((a,b)=>b.date.localeCompare(a.date)||(b.ts||0)-(a.ts||0));
+  // returns are stored as type:'return' and reduce net spend
+  const spent=entries.reduce((s,e)=>s+(e.type==='return'?-Number(e.amt||0):Number(e.amt||0)),0);
+  const left=limit-spent;
+  const pct=limit>0?Math.min(Math.max(spent,0)/limit,1):0;
+
+  $('remaining').textContent=fmt(left);
+  $('remaining').style.color = left<0?'var(--red)':'var(--ink)';
+  $('spentPill').textContent=fmt2(spent)+' net spent';
+  $('limitText').textContent=fmt(limit);
+
+  // dial
+  const C=628, ring=$('ring');
+  ring.style.strokeDashoffset=C-(C*pct);
+  let col='var(--green)';
+  if(pct>=1||left<0) col='var(--red)';
+  else if(pct>=0.8) col='var(--gold)';
+  ring.style.stroke=col;
+
+  // spending list
+  const list=$('list');
+  $('listCount').textContent=entries.length+(entries.length===1?' entry':' entries');
+  if(entries.length===0){
+    list.innerHTML='<div class="empty">No spending logged yet.<br>Tap "Add expense" to start.</div>';
+  } else {
+    list.innerHTML=entries.map(e=>{
+      const isRet=e.type==='return';
+      const init=(e.by||'?').charAt(0).toUpperCase();
+      const acol=(e.by===me)?'var(--jared)':'var(--wife)';
+      const dt=new Date(e.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const amtTxt=isRet?('+'+fmt2(e.amt)):fmt2(e.amt);
+      const meta=isRet?(e.by+' · returned · '+dt):(e.by+' · '+dt);
+      return `<div class="entry">
+        <div class="avatar" style="background:${acol}">${init}</div>
+        <div class="entry-main">
+          <div class="entry-name">${esc(e.name)}</div>
+          <div class="entry-meta">${meta}</div>
+        </div>
+        <div class="entry-amt ${isRet?'credit':''}">${amtTxt}</div>
+        <button class="del" onclick="delExp('${e.id}')">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  // needs list
+  renderNeeds();
+}
+
+function renderNeeds(){
+  const all=current.needs||{};
+  const items=Object.entries(all).map(([id,n])=>({id,...n})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const total=items.reduce((s,n)=>s+Number(n.amt||0),0);
+  $('needsBadge').textContent=items.length;
+  $('needsTotal').textContent=fmt(total);
+  $('needsSub').textContent = items.length===0 ? 'Nothing on the list yet'
+    : items.length+(items.length===1?' item planned':' items planned');
+  $('needsCount').textContent=items.length+(items.length===1?' item':' items');
+  const nl=$('needsList');
+  if(items.length===0){
+    nl.innerHTML='<div class="empty">No upcoming needs yet.<br>Tap "Add a need" to plan ahead.</div>';
+    return;
+  }
+  nl.innerHTML=items.map(n=>`<div class="need">
+    <button class="need-check" onclick="buyNeed('${n.id}')" title="Mark as bought">✓</button>
+    <div class="need-main">
+      <div class="need-name">${esc(n.name)}</div>
+      <div class="need-meta">tap ✓ when bought → moves to spending</div>
+    </div>
+    <div class="need-amt">${fmt2(n.amt)}</div>
+    <button class="del" onclick="delNeed('${n.id}')">×</button>
+  </div>`).join('');
+}
+function esc(s){return String(s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+// shared who-picker builder
+let retWhoPick;
+function buildWho(containerId, setter, getCurrent){
+  const c=$(containerId); c.innerHTML='';
+  const names=[me, otherName()];
+  names.forEach(n=>{
+    const b=document.createElement('button');
+    b.textContent=n;
+    const paint=(active)=>{
+      if(active){ b.className='on'; b.style.background=(n===me)?'var(--jared)':'var(--wife)'; b.style.color='#fff'; }
+      else { b.className=''; b.style.background='var(--card)'; b.style.color='var(--muted)'; }
+    };
+    paint(n===getCurrent());
+    b.onclick=()=>{ setter(n); [...c.children].forEach((x,i)=>{ x.className=''; x.style.background='var(--card)'; x.style.color='var(--muted)'; }); paint(true); };
+    c.appendChild(b);
+  });
+}
+
+// add sheet
+window.openAdd=function(){
+  $('expName').value=''; $('expAmt').value='';
+  $('expDate').value=new Date().toISOString().slice(0,10);
+  whoPick=me;
+  buildWho('whoButtons', n=>whoPick=n, ()=>whoPick);
+  openSheet('addSheet');
+};
+function otherName(){
+  const names=new Set();
+  Object.values(current.expenses||{}).forEach(e=>{if(e.by)names.add(e.by);});
+  names.delete(me);
+  return [...names][0]||'Partner';
+}
+
+window.saveExpense=function(){
+  const name=$('expName').value.trim();
+  const amt=parseFloat($('expAmt').value);
+  const date=$('expDate').value;
+  if(!name||!amt||amt<=0||!date){ return; }
+  push(ref(db,'rooms/'+room+'/expenses'),{name,amt:Math.round(amt*100)/100,date,by:whoPick,ts:Date.now()});
+  closeSheets();
+};
+window.delExp=function(id){
+  if(confirm('Delete this entry?')) remove(ref(db,'rooms/'+room+'/expenses/'+id));
+};
+
+// return sheet
+window.openReturn=function(){
+  $('retName').value=''; $('retAmt').value='';
+  $('retDate').value=new Date().toISOString().slice(0,10);
+  retWhoPick=me;
+  buildWho('retWhoButtons', n=>retWhoPick=n, ()=>retWhoPick);
+  openSheet('returnSheet');
+};
+window.saveReturn=function(){
+  const name=$('retName').value.trim();
+  const amt=parseFloat($('retAmt').value);
+  const date=$('retDate').value;
+  if(!name||!amt||amt<=0||!date){ return; }
+  push(ref(db,'rooms/'+room+'/expenses'),{name,amt:Math.round(amt*100)/100,date,by:retWhoPick,type:'return',ts:Date.now()});
+  closeSheets();
+};
+
+// needs handlers
+window.openNeed=function(){
+  $('needName').value=''; $('needAmt').value='';
+  openSheet('needSheet');
+};
+window.saveNeed=function(){
+  const name=$('needName').value.trim();
+  const amt=parseFloat($('needAmt').value);
+  if(!name||isNaN(amt)||amt<0){ return; }
+  push(ref(db,'rooms/'+room+'/needs'),{name,amt:Math.round(amt*100)/100,ts:Date.now()});
+  closeSheets();
+};
+window.delNeed=function(id){
+  if(confirm('Remove this need?')) remove(ref(db,'rooms/'+room+'/needs/'+id));
+};
+window.buyNeed=function(id){
+  const n=(current.needs||{})[id];
+  if(!n) return;
+  if(!confirm('Mark "'+n.name+'" as bought? It moves into your spending for this period.')) return;
+  const today=new Date().toISOString().slice(0,10);
+  push(ref(db,'rooms/'+room+'/expenses'),{name:n.name,amt:Number(n.amt||0),date:today,by:me,ts:Date.now()});
+  remove(ref(db,'rooms/'+room+'/needs/'+id));
+  setView('spend');
+};
+
+// limit sheet
+window.openLimit=function(){
+  $('limitTitle').textContent=period==='week'?'Set weekly limit':'Set monthly limit';
+  $('limitInput').value=current.limits[periodKey()]||'';
+  openSheet('limitSheet');
+};
+window.saveLimit=function(){
+  const v=parseInt($('limitInput').value,10);
+  if(isNaN(v)||v<0) return;
+  update(ref(db,'rooms/'+room+'/limits'),{[periodKey()]:v});
+  closeSheets();
+};
+
+// sheet plumbing
+function openSheet(id){ $('sheetBack').classList.add('open'); $(id).classList.add('open'); }
+window.closeSheets=function(){ $('sheetBack').classList.remove('open'); $('addSheet').classList.remove('open'); $('limitSheet').classList.remove('open'); $('returnSheet').classList.remove('open'); $('needSheet').classList.remove('open'); };
+</script>
+</body>
+</html>
